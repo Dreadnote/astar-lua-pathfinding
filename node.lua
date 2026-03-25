@@ -27,11 +27,28 @@ function Node.new(x, y)
     return self
 end
 
----Сравнивает два узла
+---Сравнивает два узла по координатам
 ---@param other Node
 ---@return boolean
 function Node:equals(other)
     return self.x == other.x and self.y == other.y
+end
+
+---Сравнивает по координатам (для поиска)
+---@param x number
+---@param y number
+---@return boolean
+function Node:equals_coords(x, y)
+    return self.x == x and self.y == y
+end
+
+---Копирует данные из другого узла
+---@param other Node
+function Node:copy_from(other)
+    self.g = other.g
+    self.h = other.h
+    self.f = other.f
+    self.parent = other.parent
 end
 
 return Node

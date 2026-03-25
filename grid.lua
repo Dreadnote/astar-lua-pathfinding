@@ -9,7 +9,7 @@
 local Grid = {}
 Grid.__index = Grid
 
----Создаем сетку из двумерного массива
+---Создает сетку из двумерного массива
 ---@param data number[][]
 ---@return Grid
 function Grid.new(data)
@@ -20,20 +20,18 @@ function Grid.new(data)
     return self
 end
 
----Проверяем, проходима ли клетка
+---Проверяет, проходима ли клетка
 ---@param x number
 ---@param y number
 ---@return boolean
 function Grid:is_walkable(x, y)
-    -- Проверяем границы
     if x < 1 or x > self.width or y < 1 or y > self.height then
         return false
     end
-    -- 0 - проходимо, 1 - стена
     return self.cells[y][x] == 0
 end
 
----Возвращаем список ортогональных соседей для клетки
+---Возвращает список соседей для клетки (4 направления)
 ---@param node Node
 ---@return table
 function Grid:get_neighbors(node)
@@ -57,33 +55,32 @@ function Grid:get_neighbors(node)
     return neighbors
 end
 
----Визуализируем сетку с путем
----@param path table|nil
-function Grid:print(path)
-    for y = 1, self.height do
-        local line = ""
-        for x = 1, self.width do
-            if path then
-                local in_path = false
-                for _, p in ipairs(path) do
-                    if p.x == x and p.y == y then
-                        in_path = true
-                        break
-                    end
-                end
-                if in_path then
-                    line = line .. "* "  -- путь
-                elseif self.cells[y][x] == 1 then
-                    line = line .. "# "  -- стена
-                else
-                    line = line .. ". "  -- пусто
-                end
-            else
-                line = line .. tostring(self.cells[y][x]) .. " "
-            end
+---Проверяет, находится ли узел в списке
+---@param list table
+---@param x number
+---@param y number
+---@return boolean
+function Grid:is_in_list(list, x, y)
+    for _, node in ipairs(list) do
+        if node.x == x and node.y == y then
+            return true
         end
-        print(line)
     end
+    return false
+end
+
+---Находит узел в списке
+---@param list table
+---@param x number
+---@param y number
+---@return Node|nil
+function Grid:find_in_list(list, x, y)
+    for _, node in ipairs(list) do
+        if node.x == x and node.y == y then
+            return node
+        end
+    end
+    return nil
 end
 
 return Grid
