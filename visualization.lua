@@ -1,5 +1,5 @@
 -- visualization.lua
--- Управление визуализацией: последовательный вывод
+-- Управление визуализацией: последовательный вывод, таблицы над лабиринтом
 
 local Visualization = {}
 
@@ -41,8 +41,7 @@ Visualization.colors = {
 local CELL_WIDTH = 3
 
 function Visualization.clear_screen()
-    -- Не очищаем экран, просто выводим разделитель
-    print(string.rep("=", 80))
+    -- Не очищаем экран
 end
 
 function Visualization.set_color(color)
@@ -67,6 +66,91 @@ function Visualization.draw_menu(mode)
     io.write("|            [S] Simple mode | [Q] Quit                                       |\n")
     io.write("|                                                                             |\n")
     io.write(string.format("|  Current mode: %-49s|\n", mode_display))
+    io.write("+-----------------------------------------------------------------------------+\n")
+    Visualization.reset_color()
+end
+
+function Visualization.draw_neighbors_info(neighbors_info)
+    if not neighbors_info or #neighbors_info == 0 then
+        return
+    end
+    
+    Visualization.set_color("bright_cyan")
+    io.write("+-----------------------------------------------------------------------------+\n")
+    io.write("| Neighbors of current node:                                                 |\n")
+    io.write("+-----------------------------------------------------------------------------+\n")
+    Visualization.reset_color()
+    
+    for _, n in ipairs(neighbors_info) do
+        local status_icon = ""
+        local status_color = ""
+        
+        if n.status == "closed" then
+            status_icon = "[CLOSED]"
+            status_color = "gray"
+        elseif n.status == "in_open" then
+            status_icon = "[IN OPEN]"
+            status_color = "yellow"
+        elseif n.status == "in_open_better" then
+            status_icon = "[BETTER]"
+            status_color = "green"
+        else
+            status_icon = "[NEW]"
+            status_color = "bright_green"
+        end
+        
+        Visualization.set_color(status_color)
+        io.write(string.format("|    (%d,%d) -> G=%2d H=%2d F=%2d  %-12s", 
+              n.x, n.y, n.g, n.h, n.f, status_icon))
+        Visualization.reset_color()
+        
+        if n.existing_g then
+            Visualization.set_color("gray")
+            io.write(string.format("  (old G=%d)", n.existing_g))
+            Visualization.reset_color()
+        end
+        io.write("\n")
+    end
+    
+    Visualization.set_color("bright_cyan")
+    io.write("+-----------------------------------------------------------------------------+\n")
+    Visualization.reset_color()
+end
+
+function Visualization.draw_open_list(open_list, best_node)
+    if #open_list == 0 then
+        return
+    end
+    
+    Visualization.set_color("bright_green")
+    io.write("+-----------------------------------------------------------------------------+\n")
+    io.write("| Open list (sorted by F-cost):                                               |\n")
+    io.write("+-----------------------------------------------------------------------------+\n")
+    Visualization.reset_color()
+    
+    local display_count = math.min(#open_list, 12)
+    for i = 1, display_count do
+        local node = open_list[i]
+        local marker = ""
+        if best_node and node.x == best_node.x and node.y == best_node.y then
+            marker = "  <-- BEST"
+            Visualization.set_color("bright_green")
+        else
+            Visualization.set_color("white")
+        end
+        
+        io.write(string.format("|    %2d. (%d,%d) -> G=%2d H=%2d F=%2d%s\n", 
+              i, node.x, node.y, node.g, node.h, node.f, marker))
+        Visualization.reset_color()
+    end
+    
+    if #open_list > 12 then
+        Visualization.set_color("gray")
+        io.write(string.format("|    ... and %d more nodes\n", #open_list - 12))
+        Visualization.reset_color()
+    end
+    
+    Visualization.set_color("bright_green")
     io.write("+-----------------------------------------------------------------------------+\n")
     Visualization.reset_color()
 end
@@ -227,91 +311,6 @@ function Visualization.draw_grid(grid, state, mode, start_x, start_y, goal_x, go
         end
         io.write("\n")
     end
-end
-
-function Visualization.draw_neighbors_info(neighbors_info)
-    if not neighbors_info or #neighbors_info == 0 then
-        return
-    end
-    
-    Visualization.set_color("bright_cyan")
-    io.write("+-----------------------------------------------------------------------------+\n")
-    io.write("| Neighbors of current node:                                                 |\n")
-    io.write("+-----------------------------------------------------------------------------+\n")
-    Visualization.reset_color()
-    
-    for _, n in ipairs(neighbors_info) do
-        local status_icon = ""
-        local status_color = ""
-        
-        if n.status == "closed" then
-            status_icon = "[CLOSED]"
-            status_color = "gray"
-        elseif n.status == "in_open" then
-            status_icon = "[IN OPEN]"
-            status_color = "yellow"
-        elseif n.status == "in_open_better" then
-            status_icon = "[BETTER]"
-            status_color = "green"
-        else
-            status_icon = "[NEW]"
-            status_color = "bright_green"
-        end
-        
-        Visualization.set_color(status_color)
-        io.write(string.format("|    (%d,%d) -> G=%2d H=%2d F=%2d  %-12s", 
-              n.x, n.y, n.g, n.h, n.f, status_icon))
-        Visualization.reset_color()
-        
-        if n.existing_g then
-            Visualization.set_color("gray")
-            io.write(string.format("  (old G=%d)", n.existing_g))
-            Visualization.reset_color()
-        end
-        io.write("\n")
-    end
-    
-    Visualization.set_color("bright_cyan")
-    io.write("+-----------------------------------------------------------------------------+\n")
-    Visualization.reset_color()
-end
-
-function Visualization.draw_open_list(open_list, best_node)
-    if #open_list == 0 then
-        return
-    end
-    
-    Visualization.set_color("bright_green")
-    io.write("+-----------------------------------------------------------------------------+\n")
-    io.write("| Open list (sorted by F-cost):                                               |\n")
-    io.write("+-----------------------------------------------------------------------------+\n")
-    Visualization.reset_color()
-    
-    local display_count = math.min(#open_list, 12)
-    for i = 1, display_count do
-        local node = open_list[i]
-        local marker = ""
-        if best_node and node.x == best_node.x and node.y == best_node.y then
-            marker = "  <-- BEST"
-            Visualization.set_color("bright_green")
-        else
-            Visualization.set_color("white")
-        end
-        
-        io.write(string.format("|    %2d. (%d,%d) -> G=%2d H=%2d F=%2d%s\n", 
-              i, node.x, node.y, node.g, node.h, node.f, marker))
-        Visualization.reset_color()
-    end
-    
-    if #open_list > 12 then
-        Visualization.set_color("gray")
-        io.write(string.format("|    ... and %d more nodes\n", #open_list - 12))
-        Visualization.reset_color()
-    end
-    
-    Visualization.set_color("bright_green")
-    io.write("+-----------------------------------------------------------------------------+\n")
-    Visualization.reset_color()
 end
 
 function Visualization.draw_stats(step_count, open_count, closed_count)
