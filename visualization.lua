@@ -39,6 +39,7 @@ Visualization.colors = {
 }
 
 local CELL_WIDTH = 3
+local TABLE_WIDTH = 77  -- Фиксированная ширина таблиц
 
 function Visualization.clear_screen()
     -- Не очищаем экран
@@ -52,6 +53,20 @@ function Visualization.reset_color()
     io.write(Visualization.colors.reset)
 end
 
+-- Функция для вывода горизонтальной линии с =
+local function draw_line()
+    io.write(string.rep("=", TABLE_WIDTH))
+    io.write("\n")
+end
+
+-- Функция для вывода строки с рамкой | ... |
+local function draw_row(content)
+    local content_len = #content
+    local padding = TABLE_WIDTH - content_len - 2
+    if padding < 0 then padding = 0 end
+    io.write("|" .. content .. string.rep(" ", padding) .. "|\n")
+end
+
 function Visualization.draw_menu(mode)
     local mode_display = ""
     if mode == "simple" then mode_display = "SIMPLE"
@@ -61,12 +76,12 @@ function Visualization.draw_menu(mode)
     end
     
     Visualization.set_color("bright_yellow")
-    io.write("+-----------------------------------------------------------------------------+\n")
-    io.write("|  Controls: [Enter] next step | [G] G-cost | [H] H-cost | [F] F-cost        |\n")
-    io.write("|            [S] Simple mode | [Q] Quit                                       |\n")
-    io.write("|                                                                             |\n")
-    io.write(string.format("|  Current mode: %-49s|\n", mode_display))
-    io.write("+-----------------------------------------------------------------------------+\n")
+    draw_line()
+    draw_row("  Controls: [Enter] next step | [G] G-cost | [H] H-cost | [F] F-cost")
+    draw_row("            [S] Simple mode | [Q] Quit")
+    draw_row("")
+    draw_row("  Current mode: " .. mode_display)
+    draw_line()
     Visualization.reset_color()
 end
 
@@ -76,9 +91,9 @@ function Visualization.draw_neighbors_info(neighbors_info)
     end
     
     Visualization.set_color("bright_cyan")
-    io.write("+-----------------------------------------------------------------------------+\n")
-    io.write("| Neighbors of current node:                                                 |\n")
-    io.write("+-----------------------------------------------------------------------------+\n")
+    draw_line()
+    draw_row(" Neighbors of current node:")
+    draw_line()
     Visualization.reset_color()
     
     for _, n in ipairs(neighbors_info) do
@@ -100,20 +115,17 @@ function Visualization.draw_neighbors_info(neighbors_info)
         end
         
         Visualization.set_color(status_color)
-        io.write(string.format("|    (%d,%d) -> G=%2d H=%2d F=%2d  %-12s", 
-              n.x, n.y, n.g, n.h, n.f, status_icon))
-        Visualization.reset_color()
-        
+        local line = string.format("    (%d,%d) -> G=%2d H=%2d F=%2d  %-12s", 
+              n.x, n.y, n.g, n.h, n.f, status_icon)
         if n.existing_g then
-            Visualization.set_color("gray")
-            io.write(string.format("  (old G=%d)", n.existing_g))
-            Visualization.reset_color()
+            line = line .. string.format("  (old G=%d)", n.existing_g)
         end
-        io.write("\n")
+        draw_row(line)
+        Visualization.reset_color()
     end
     
     Visualization.set_color("bright_cyan")
-    io.write("+-----------------------------------------------------------------------------+\n")
+    draw_line()
     Visualization.reset_color()
 end
 
@@ -123,35 +135,36 @@ function Visualization.draw_open_list(open_list, best_node)
     end
     
     Visualization.set_color("bright_green")
-    io.write("+-----------------------------------------------------------------------------+\n")
-    io.write("| Open list (sorted by F-cost):                                               |\n")
-    io.write("+-----------------------------------------------------------------------------+\n")
+    draw_line()
+    draw_row(" Open list (sorted by F-cost):")
+    draw_line()
     Visualization.reset_color()
     
     local display_count = math.min(#open_list, 12)
     for i = 1, display_count do
         local node = open_list[i]
         local marker = ""
+        local color = "white"
         if best_node and node.x == best_node.x and node.y == best_node.y then
             marker = "  <-- BEST"
-            Visualization.set_color("bright_green")
-        else
-            Visualization.set_color("white")
+            color = "bright_green"
         end
         
-        io.write(string.format("|    %2d. (%d,%d) -> G=%2d H=%2d F=%2d%s\n", 
-              i, node.x, node.y, node.g, node.h, node.f, marker))
+        Visualization.set_color(color)
+        local line = string.format("    %2d. (%d,%d) -> G=%2d H=%2d F=%2d%s", 
+              i, node.x, node.y, node.g, node.h, node.f, marker)
+        draw_row(line)
         Visualization.reset_color()
     end
     
     if #open_list > 12 then
         Visualization.set_color("gray")
-        io.write(string.format("|    ... and %d more nodes\n", #open_list - 12))
+        draw_row(string.format("    ... and %d more nodes", #open_list - 12))
         Visualization.reset_color()
     end
     
     Visualization.set_color("bright_green")
-    io.write("+-----------------------------------------------------------------------------+\n")
+    draw_line()
     Visualization.reset_color()
 end
 
@@ -315,11 +328,11 @@ end
 
 function Visualization.draw_stats(step_count, open_count, closed_count)
     Visualization.set_color("bright_magenta")
-    io.write("+-----------------------------------------------------------------------------+\n")
-    io.write(string.format("| Step: %d | Open nodes: %d | Closed nodes: %d", 
-          step_count, open_count, closed_count))
-    io.write(string.rep(" ", 73 - #tostring(step_count) - #tostring(open_count) - #tostring(closed_count)) .. "|\n")
-    io.write("+-----------------------------------------------------------------------------+\n")
+    draw_line()
+    local stats_line = string.format(" Step: %d | Open nodes: %d | Closed nodes: %d", 
+          step_count, open_count, closed_count)
+    draw_row(stats_line)
+    draw_line()
     Visualization.reset_color()
 end
 
