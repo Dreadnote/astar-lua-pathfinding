@@ -1,5 +1,5 @@
 -- astar_stepped.lua
--- Пошаговая реализация алгоритма A* с улучшенным выбором узлов
+-- Пошаговая реализация алгоритма A*
 
 local Node = require("node")
 local AStarStepped = {}
@@ -26,16 +26,15 @@ function AStarStepped.new(grid, start_x, start_y, goal_x, goal_y)
     
     local heuristic = AStarStepped.heuristic
     
-    -- Создаем стартовый узел
+    -- Стартовый узел
     local start_node = Node.new(start_x, start_y)
     start_node.g = 0
     start_node.h = heuristic(start_x, start_y, goal_x, goal_y)
     start_node.f = start_node.g + start_node.h
     start_node.parent = nil
-    
     table.insert(self.open_list, start_node)
     
-    -- Функция поиска узла с минимальным F (при равенстве - выбираем с меньшим H)
+    -- Поиск узла с минимальным F (при равенстве - по H)
     self.find_best_node = function()
         if #self.open_list == 0 then
             return nil
@@ -43,19 +42,16 @@ function AStarStepped.new(grid, start_x, start_y, goal_x, goal_y)
         local best = self.open_list[1]
         for i = 2, #self.open_list do
             local current = self.open_list[i]
-            -- Сравниваем по F, если равны - сравниваем по H
             if current.f < best.f then
                 best = current
-            elseif current.f == best.f then
-                if current.h < best.h then
-                    best = current
-                end
+            elseif current.f == best.f and current.h < best.h then
+                best = current
             end
         end
         return best
     end
     
-    -- Функция получения соседей с их стоимостью
+    -- Информация о соседях текущего узла
     self.get_neighbors_info = function()
         if not self.current_node then
             return {}
@@ -79,40 +75,30 @@ function AStarStepped.new(grid, start_x, start_y, goal_x, goal_y)
             end
             
             table.insert(neighbors_info, {
-                x = n.x, y = n.y,
-                g = g, h = h, f = f,
-                status = status
+                x = n.x, y = n.y, g = g, h = h, f = f, status = status
             })
         end
-        
         return neighbors_info
     end
     
-    -- Функция восстановления пути
+    -- Восстановление пути от цели к старту
     self.reconstruct_path = function()
         local path = {}
         local current = self.current_node
-        
-        if not current then
-            return path
-        end
-        
         while current do
             table.insert(path, 1, {x = current.x, y = current.y})
             current = current.parent
         end
-        
         return path
     end
     
-    -- Основной шаг алгоритма
+    -- Один шаг алгоритма
     self.step = function()
         if self.finished then
             return nil
         end
         
         self.step_count = self.step_count + 1
-        
         local current = self:find_best_node()
         
         if not current then
@@ -127,20 +113,15 @@ function AStarStepped.new(grid, start_x, start_y, goal_x, goal_y)
             self.found = true
             self.current_node = current
             self.final_path = self:reconstruct_path()
-            
             return {
-                finished = true,
-                found = true,
-                current_node = current,
-                open_list = self.open_list,
-                closed_list = self.closed_list,
-                neighbors_info = {},
-                step_count = self.step_count,
+                finished = true, found = true, current_node = current,
+                open_list = self.open_list, closed_list = self.closed_list,
+                neighbors_info = {}, step_count = self.step_count,
                 final_path = self.final_path
             }
         end
         
-        -- Перемещаем в закрытый список
+        -- Перемещаем текущий узел из open в closed
         for i, node in ipairs(self.open_list) do
             if node == current then
                 table.remove(self.open_list, i)
@@ -150,9 +131,8 @@ function AStarStepped.new(grid, start_x, start_y, goal_x, goal_y)
         table.insert(self.closed_list, current)
         self.current_node = current
         
-        -- Обрабатываем соседей
+        -- Обработка соседей
         local neighbors = self.grid:get_neighbors(current)
-        
         for _, n in ipairs(neighbors) do
             if not self.grid:is_in_list(self.closed_list, n.x, n.y) then
                 local new_g = current.g + 1
@@ -173,21 +153,14 @@ function AStarStepped.new(grid, start_x, start_y, goal_x, goal_y)
             end
         end
         
-        -- Сортируем открытый список: сначала по F, потом по H
+        -- Сортировка open_list по F, затем по H
         table.sort(self.open_list, function(a, b)
-            if a.f ~= b.f then
-                return a.f < b.f
-            else
-                return a.h < b.h
-            end
+            if a.f ~= b.f then return a.f < b.f else return a.h < b.h end
         end)
         
         return {
-            finished = false,
-            current_node = current,
-            open_list = self.open_list,
-            closed_list = self.closed_list,
-            neighbors_info = self:get_neighbors_info(),
+            finished = false, current_node = current, open_list = self.open_list,
+            closed_list = self.closed_list, neighbors_info = self:get_neighbors_info(),
             step_count = self.step_count
         }
     end
